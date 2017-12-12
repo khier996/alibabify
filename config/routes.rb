@@ -2,13 +2,15 @@ Rails.application.routes.draw do
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".
   mount ShopifyApp::Engine, at: '/'
-  
+
   root :to => 'admin/dashboard#index'
-  
+
+  get '/kurut', to: 'admin/dashboard#kurut'
+
   # the ProxyController will pick up ApplicationProxy requests
   # and forward valid ones on to the pages#show action
   get 'proxy' => 'proxy#index'
-  
+
   # scope all admin controllers,
   # views and models within admin namespace
   namespace :admin do
