@@ -5,25 +5,16 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
 
   def index
     @products = ShopifyAPI::Product.find(:all, :params => {:limit => 10})
-
-    product_attrs = {
-      "title": "Burton Custom Freestyle 151",
-      "body_html": "<strong>Good snowboard!<\/strong>",
-      "vendor": "Burton",
-      "product_type": "Snowboard",
-      "options": [{"name": 'color'}, {"name": 'size'}],
-      "variants": [],
-      "images": [
-        {'src': 'https://arcservices.org/content/uploads/sites/23/2017/02/catalog_detail_image_large.jpg'},
-        {'src': 'https://rukminim1.flixcart.com/image/704/704/j1wgjgw0/t-shirt/g/m/u/xxl-ts900805-ghpc-original-imaeqyhsfq6zweum.jpeg?q=70'}
-      ]
-    }
-    product = ShopifyAPI::Product.new
+    @product = ShopifyAPI::Product.new
     # product.attributes = product_attrs
-    product.attributes = get_product_attrs
-    product.save
-    byebug
+
+    @product.attributes = get_product_attrs
+    @product.save
     @browser.close
+
+    if @product.errors.messages.empty?
+      update_variant_images
+    end
   end
 
   def kurut
@@ -31,8 +22,45 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
 
   private
 
-  def test_variant
-    return {:compare_at_price=>169.0, :fulfillment_service=>"manual", :inventory_management=>"shopify", :inventory_policy=>"continue", :inventory_quantity=>10, :price=>nil, :product_id=>"535772624331", :requires_shipping=>true, :sku=>"3195851195064", :title=>"pink", "option0"=>"黑色176011172", "option1"=>"44"}
+  def update_variant_images
+    map_images
+    find_image_options
+    @product.variants.each do |variant|
+      @product.images.each do |image|
+        # option_name = image.prop['prop_name']
+        if variant.send(image.option) == image.prop['variant_name']
+          variant.image_id = image.id
+          variant.save
+          next
+        end
+      end
+    end
+  end
+
+  def map_images #images returned after saving product and variant_images
+    @product.images.each do |product_img|
+      @variant_images.each do |prop_name, variants|
+        variants.each do |variant_name, variant_img|
+          # below two lines might need refactoring
+          product_img_src = product_img.src.split('/products/').second.split('?').first.split('600x600q90').first + '600x600q90.jpg'
+          variant_img = variant_img.split(/\/uploaded\/.*\//).second.sub('!!', '_')
+
+          if product_img_src == variant_img
+            product_img.prop = {'prop_name' => prop_name, 'variant_name' => variant_name}
+          end
+        end
+      end
+    end
+  end
+
+  def find_image_options
+    @product.images.each do |image|
+      @product.options.each_with_index do |option, index|
+        if image.prop['prop_name'] == option.name
+          image.option = "option#{index + 1}"
+        end
+      end
+    end
   end
 
   def get_product_attrs
@@ -45,7 +73,8 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     props = filter_props(props)
     @variants = []
     @prop_imgs = {}
-    @images = []
+    @images = [] #images for body html
+    @variant_images = {}
     find_variants(props, props.count - 1, {'props' => {}})
     find_images
     return reformat_data
@@ -76,6 +105,9 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     prop_name = props[level].dts.first.text
     variants = props[level].lis
     variants = choose_variants(variants)
+
+    store_variant_images(prop_name, props[level].ul)
+
     variants.each do |variant|
       variant_name = variant.text.gsub(/\n已选中/, '')
       variant.as.first.click
@@ -83,7 +115,9 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
         prop_hash['props'] = prop_hash['props'].clone
         prop_hash['props'][prop_name] = variant_name
         prop_hash = update_prop_hash_with_ids(prop_hash)
-        prop_hash = update_prop_hash_with_image(prop_hash, variant_name, variant)
+
+        # prop_hash = update_prop_hash_with_image(prop_hash, variant_name, variant)
+
         prop_hash = update_prop_hash_with_prices(prop_hash)
         @variants << prop_hash.clone
         next
@@ -102,6 +136,22 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
       variant_class && variant_class.value == 'tb-out-of-stock'
     end
     variants
+  end
+
+  def store_variant_images(prop_name, variant_list)
+    doc = Nokogiri::HTML(variant_list.html)
+    variants = doc.css('li')
+    first_variant_style = variants.first.css('a').first.attributes['style']
+    return unless first_variant_style # if first variant doesn't have style, other variants most likely also don't have it
+    @variant_images[prop_name] = {}
+    variants.each do |variant|
+      style = variant.css('a').first.attributes['style']
+      variant_img = style.value.scan(/\(.*\)/).first.tr('()', '') unless style.nil?
+      variant_img = 'https:' + variant_img.sub('jpg_40x40q90', 'jpg_600x600q90')
+      variant_img = 'https://img.alicdn.com/bao/uploaded/i2/' + variant_img.split(/\/uploaded\/.*\/\d*\//).second #getting rid of unnecessary part for easier comparison with return product.images
+      variant_name = variant.attributes['title'].value
+      @variant_images[prop_name][variant_name] = variant_img
+    end
   end
 
   def update_prop_hash_with_ids(prop_hash)
@@ -142,16 +192,7 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
   end
 
   def reformat_data
-    product_attrs = {
-      "title": "Burton Custom Freestyle 151",
-      "body_html": "<strong>Good snowboard!<\/strong>",
-      "vendor": "Burton",
-      "product_type": "Snowboard",
-      "images": [
-        {'src': 'https://arcservices.org/content/uploads/sites/23/2017/02/catalog_detail_image_large.jpg'},
-        {'src': 'https://rukminim1.flixcart.com/image/704/704/j1wgjgw0/t-shirt/g/m/u/xxl-ts900805-ghpc-original-imaeqyhsfq6zweum.jpeg?q=70'}
-      ]
-    }
+    translate_attributes
 
     attrs = {'title' => @title}
     body_html = ""
@@ -164,10 +205,22 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
 
     variants = []
     @variants.each { |variant| variants << create_variant(variant) }
-
     attrs['variants'] = variants
 
+    attrs['images'] = []
+    @variant_images.each do |_, variants|
+      variants.each do |_, variant_img|
+        attrs['images'] << {'src': variant_img}
+      end
+    end
+
     return attrs
+  end
+
+  def translate_attributes
+    @title = Translator.translate(@title)
+    # need to figure out how to translate options. maybe create translation hash. if there is a translation in the hash, use it, if not - baidu translate it
+    byebug
   end
 
   def create_variant(variant)
