@@ -6,11 +6,13 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
   def index
     @products = ShopifyAPI::Product.find(:all, :params => {:limit => 10})
     @product = ShopifyAPI::Product.new
-    # product.attributes = product_attrs
 
-    @product.attributes = get_product_attrs
-    @product.save
-    @browser.close
+    begin
+      @product.attributes = get_product_attrs
+      @product.save
+    ensure
+      @browser.close
+    end
 
     if @product.errors.messages.empty?
       update_variant_images
@@ -27,7 +29,6 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     find_image_options
     @product.variants.each do |variant|
       @product.images.each do |image|
-        # option_name = image.prop['prop_name']
         if variant.send(image.option) == image.prop['variant_name']
           variant.image_id = image.id
           variant.save
@@ -46,7 +47,7 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
           variant_img = variant_img.split(/\/uploaded\/.*\//).second.sub('!!', '_')
 
           if product_img_src == variant_img
-            product_img.prop = {'prop_name' => prop_name, 'variant_name' => variant_name}
+            product_img.prop = {'prop_name' => @translated_props[prop_name], 'variant_name' => @translated_props[variant_name]}
           end
         end
       end
@@ -64,7 +65,9 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
   end
 
   def get_product_attrs
-    url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.3e2e4a3dh91FYr&id=535772624331&cm_id=140105335569ed55e27b&abbucket=20'
+    # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.3e2e4a3dh91FYr&id=535772624331&cm_id=140105335569ed55e27b&abbucket=20'
+    url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.1359e702S5c2xx&id=26125852732&cm_id=140105335569ed55e27b&abbucket=9'
+
     @browser = Watir::Browser.new :chrome
     @browser.goto(url)
     @browser.wait(5)
@@ -170,18 +173,18 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     return prop_hash
   end
 
-  def update_prop_hash_with_image(prop_hash, variant_name, variant)
-    if @prop_imgs[variant_name].nil?
-      doc = Nokogiri::HTML(variant.html)
-      style = doc.css('a').attribute('style')
-      variant_img = style.value.scan(/\(.*\)/).first.tr('()', '') unless style.nil?
-      prop_hash['variant_image'] = variant_img
-      @prop_imgs[variant_name] = variant_img
-    else
-      prop_hash['variant_image'] = @prop_imgs[variant_name]
-    end
-    return prop_hash
-  end
+  # def update_prop_hash_with_image(prop_hash, variant_name, variant)
+  #   if @prop_imgs[variant_name].nil?
+  #     doc = Nokogiri::HTML(variant.html)
+  #     style = doc.css('a').attribute('style')
+  #     variant_img = style.value.scan(/\(.*\)/).first.tr('()', '') unless style.nil?
+  #     prop_hash['variant_image'] = variant_img
+  #     @prop_imgs[variant_name] = variant_img
+  #   else
+  #     prop_hash['variant_image'] = @prop_imgs[variant_name]
+  #   end
+  #   return prop_hash
+  # end
 
   def find_original_price(html_doc)
     price = html_doc.css('.tm-promo-price .tm-price').text.to_f
@@ -201,10 +204,10 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     end
     attrs['body_html'] = body_html
     attrs['options'] = []
-    @variants.first['props'].each { |prop, _| attrs['options'] << {'name' => prop} }
 
-    variants = []
-    @variants.each { |variant| variants << create_variant(variant) }
+    @variants.first['props'].each { |prop, _| attrs['options'] << {'name' => @translated_props[prop]} }
+
+    variants = @variants.map { |variant| create_variant(variant) }
     attrs['variants'] = variants
 
     attrs['images'] = []
@@ -219,8 +222,11 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
 
   def translate_attributes
     @title = Translator.translate(@title)
-    # need to figure out how to translate options. maybe create translation hash. if there is a translation in the hash, use it, if not - baidu translate it
-    byebug
+
+    @translated_props = {}
+    @variants.first['props'].each do |prop, _|
+      @translated_props[prop] = Translator.translate(prop)
+    end
   end
 
   def create_variant(variant)
@@ -239,11 +245,16 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
 
     variant['props'].each_with_index do |prop, index|
       option = "option#{index+1}"
-      data[option] = prop[1]
+
+      if prop[1] == prop[1].to_i.to_s # prop is a number and doesn't need translation
+        translated_prop = prop[1]
+      else
+        translated_prop = @translated_props[prop[1]] || Translator.translate(prop[1])
+        @translated_props[prop[1]] = translated_prop
+      end
+      data[option] = translated_prop
     end
     return data
   end
-
-
 
 end
