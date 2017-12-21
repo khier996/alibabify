@@ -31,11 +31,11 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
       @product.images.each do |image|
         if variant.send(image.option) == image.prop['variant_name']
           variant.image_id = image.id
-          variant.save
           next
         end
       end
     end
+    @product.save
   end
 
   def map_images #images returned after saving product and variant_images
@@ -66,7 +66,8 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
 
   def get_product_attrs
     # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.3e2e4a3dh91FYr&id=535772624331&cm_id=140105335569ed55e27b&abbucket=20'
-    url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.1359e702S5c2xx&id=26125852732&cm_id=140105335569ed55e27b&abbucket=9'
+    # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.1359e702S5c2xx&id=26125852732&cm_id=140105335569ed55e27b&abbucket=9'
+    url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.39c53556D82FMW&id=14217694831'
 
     @browser = Watir::Browser.new :chrome
     @browser.goto(url)
@@ -112,15 +113,14 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     store_variant_images(prop_name, props[level].ul)
 
     variants.each do |variant|
+      break if @variants.length == 100
+
       variant_name = variant.text.gsub(/\n已选中/, '')
       variant.as.first.click
       if level == 0
         prop_hash['props'] = prop_hash['props'].clone
         prop_hash['props'][prop_name] = variant_name
         prop_hash = update_prop_hash_with_ids(prop_hash)
-
-        # prop_hash = update_prop_hash_with_image(prop_hash, variant_name, variant)
-
         prop_hash = update_prop_hash_with_prices(prop_hash)
         @variants << prop_hash.clone
         next
@@ -172,19 +172,6 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     prop_hash['original_price'] = original_price
     return prop_hash
   end
-
-  # def update_prop_hash_with_image(prop_hash, variant_name, variant)
-  #   if @prop_imgs[variant_name].nil?
-  #     doc = Nokogiri::HTML(variant.html)
-  #     style = doc.css('a').attribute('style')
-  #     variant_img = style.value.scan(/\(.*\)/).first.tr('()', '') unless style.nil?
-  #     prop_hash['variant_image'] = variant_img
-  #     @prop_imgs[variant_name] = variant_img
-  #   else
-  #     prop_hash['variant_image'] = @prop_imgs[variant_name]
-  #   end
-  #   return prop_hash
-  # end
 
   def find_original_price(html_doc)
     price = html_doc.css('.tm-promo-price .tm-price').text.to_f
