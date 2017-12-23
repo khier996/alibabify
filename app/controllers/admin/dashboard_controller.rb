@@ -10,6 +10,9 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     begin
       @product.attributes = get_product_attrs
       @product.save
+    rescue => exception
+      byebug
+      # need to write down the exception into db
     ensure
       @browser.close
     end
@@ -29,6 +32,7 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     find_image_options
     @product.variants.each do |variant|
       @product.images.each do |image|
+        next unless image.respond_to?(:option) # not a variant image
         if variant.send(image.option) == image.prop['variant_name']
           variant.image_id = image.id
           next
@@ -57,6 +61,7 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
   def find_image_options
     @product.images.each do |image|
       @product.options.each_with_index do |option, index|
+        next unless image.respond_to?(:prop) # not a variant image
         if image.prop['prop_name'] == option.name
           image.option = "option#{index + 1}"
         end
@@ -66,8 +71,8 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
 
   def get_product_attrs
     # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.3e2e4a3dh91FYr&id=535772624331&cm_id=140105335569ed55e27b&abbucket=20'
-    # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.1359e702S5c2xx&id=26125852732&cm_id=140105335569ed55e27b&abbucket=9'
-    url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.39c53556D82FMW&id=14217694831'
+    url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.1359e702S5c2xx&id=26125852732&cm_id=140105335569ed55e27b&abbucket=9'
+    # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.39c53556D82FMW&id=14217694831'
 
     @browser = Watir::Browser.new :chrome
     @browser.goto(url)
@@ -77,7 +82,8 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     props = filter_props(props)
     @variants = []
     @prop_imgs = {}
-    @images = [] #images for body html
+    @product_images = []
+    @body_images = [] #images for body html
     @variant_images = {}
     find_variants(props, props.count - 1, {'props' => {}})
     find_images
@@ -88,12 +94,27 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     @browser.execute_script('window.scrollBy(0, 1000)')
     sleep(1)
     doc = Nokogiri::HTML(@browser.html)
+    find_product_images(doc)
+    find_body_images(doc)
+  end
+
+  def find_product_images(doc)
+    images = doc.css('#J_UlThumb img')
+    return if images.empty?
+    doc.css('#J_UlThumb img').each do |img|
+      img_src = img.attributes['src'].value
+      img_src = 'https:' + img_src.sub('jpg_60x60q90', 'jpg_800x800q90')
+      @product_images << {'src': img_src}
+    end
+  end
+
+  def find_body_images(doc)
     @title = doc.css('.tb-detail-hd h1').text.gsub(/\t|\n/, '')
     images = doc.css('#description img')
     images.each do |image|
       lazyload = image.attributes['data-ks-lazyload']
       src = lazyload ? lazyload.value : image.attributes['src'].value
-      @images << src
+      @body_images << src
     end
   end
 
@@ -116,18 +137,33 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
       break if @variants.length == 100
 
       variant_name = variant.text.gsub(/\n已选中/, '')
-      variant.as.first.click
+      click(variant)
       if level == 0
         prop_hash['props'] = prop_hash['props'].clone
         prop_hash['props'][prop_name] = variant_name
         prop_hash = update_prop_hash_with_ids(prop_hash)
         prop_hash = update_prop_hash_with_prices(prop_hash)
         @variants << prop_hash.clone
+
+        variant.as.first.click #unclick the variant to make sure the lower level variant is clickable
+
         next
       else
         prop_hash['props'] = prop_hash['props'].clone
         prop_hash['props'][prop_name] = variant_name
         find_variants(props, level-1, prop_hash)
+      end
+    end
+  end
+
+  def click(variant)
+    (1..3).each do |n|
+      begin
+        variant.as.first.click
+        break
+      rescue
+        @browser.execute_script('scrollBy(0, 50)')
+        next
       end
     end
   end
@@ -175,10 +211,8 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
 
   def find_original_price(html_doc)
     price = html_doc.css('.tm-promo-price .tm-price').text.to_f
-    if price == 0
-      price = html_doc.css('.tm-price-cur .tm-price').text.to_f
-    end
-    price
+    price = html_doc.css('.tm-price-cur .tm-price').text.to_f if price == 0
+    return price
   end
 
   def reformat_data
@@ -186,7 +220,7 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
 
     attrs = {'title' => @title}
     body_html = ""
-    @images.each do |image|
+    @body_images.each do |image|
       body_html += "<img src=#{image} alt='' style='display: block; margin-left: auto; margin-right: auto;'>"
     end
     attrs['body_html'] = body_html
@@ -197,7 +231,8 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     variants = @variants.map { |variant| create_variant(variant) }
     attrs['variants'] = variants
 
-    attrs['images'] = []
+    # attrs['images'] = []
+    attrs['images'] = @product_images
     @variant_images.each do |_, variants|
       variants.each do |_, variant_img|
         attrs['images'] << {'src': variant_img}
