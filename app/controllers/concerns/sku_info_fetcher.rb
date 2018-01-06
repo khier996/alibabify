@@ -1,4 +1,4 @@
-class SkuPriceFetcher
+class SkuInfoFetcher
 
   def self.fetch(product_id) # getting all the prices for a product
     timestamp = Time.now.to_i
@@ -8,15 +8,20 @@ class SkuPriceFetcher
                'user-agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36'}
     response = HTTParty.get(url, headers: headers)
     prices = response.parsed_response['defaultModel']['itemPriceResultDO']['priceInfo']
+    quantities = response.parsed_response['defaultModel']['inventoryDO']['skuQuantity']
 
-    sku_prices = {}
+    sku_infos = {}
     prices.each do |sku, price|
       next unless price['promotionList']
       promo_price = price['promotionList'][0]['price'].to_f
       original_price = price['price'].to_f
-      sku_prices[sku] = {'promo_price' => promo_price, 'original_price' => original_price}
+      quantity = quantities[sku]['quantity']
+
+      sku_infos[sku] = {'promo_price' => promo_price,
+                        'original_price' => original_price,
+                        'quantity' => quantity}
     end
-    return sku_prices
+    return sku_infos
   end
 end
 

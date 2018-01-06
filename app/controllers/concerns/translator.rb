@@ -11,9 +11,10 @@ class Translator
     url = "https://fanyi-api.baidu.com/api/trans/vip/translate/?q=#{encoded_query}&from=zh&to=vie&appid=#{app_id}&salt=#{salt}&sign=#{sign}"
 
     res = HTTParty.get(url)
-    if res.code < 400
+    if res.code < 400 && res.parsed_response['trans_result']
       return res.parsed_response['trans_result'].first['dst']
     else
+      # need to send email in case of translation error
       return query
     end
   end

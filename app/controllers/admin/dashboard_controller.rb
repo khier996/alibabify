@@ -19,10 +19,24 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
 
     if @product.errors.messages.empty?
       update_variant_images
+      @product.taobao_id = @taobao_id
+      @product.original_title = @original_title
+      @db_product = Product.copy_shopify(@product)
+      save_unparsed_skus if @product.variants.count < 100
     end
   end
 
   def kurut
+    product = Product.last
+    shopify_product = ShopifyAPI::Product.find(product.shopify_product_id)
+
+    # variant = product.variants.unparsed.first
+    variant = product.variants.parsed.first # test
+
+
+    sku_infos = SkuInfoFetcher.fetch(product.taobao_product_id)
+    sku_info = sku_infos[variant.sku]
+    variant.patch_unparsed_sku(sku_info, shopify_product)
   end
 
   private
@@ -70,10 +84,10 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
   end
 
   def get_product_attrs
-    # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.3e2e4a3dh91FYr&id=535772624331&cm_id=140105335569ed55e27b&abbucket=20'
+    url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.3e2e4a3dh91FYr&id=535772624331&cm_id=140105335569ed55e27b&abbucket=20'
     # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.1359e702S5c2xx&id=26125852732&cm_id=140105335569ed55e27b&abbucket=9'
     # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.39c53556D82FMW&id=14217694831'
-    url = 'https://detail.tmall.com/item.htm?spm=a220m.1000858.1000725.81.d8240d1LXPOq0&id=545820790679&areaId=310100&user_id=2956245271&cat_id=2&is_b=1&rn=d445d1370db8d1e2b943188b94b1bde2'
+    # url = 'https://detail.tmall.com/item.htm?spm=a220m.1000858.1000725.81.d8240d1LXPOq0&id=545820790679&areaId=310100&user_id=2956245271&cat_id=2&is_b=1&rn=d445d1370db8d1e2b943188b94b1bde2'
 
     @browser = Watir::Browser.new :chrome
     @browser.goto(url)
@@ -87,16 +101,16 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     @body_images = [] #images for body html
     @variant_images = {}
 
-    fetch_sku_prices
+    fetch_sku_infos
     find_variants(props, props.count - 1, {'props' => {}})
     find_images
     return reformat_data
   end
 
-  def fetch_sku_prices
+  def fetch_sku_infos
     params = CGI.parse(@browser.url)
-    product_id = params['id'].first
-    @sku_prices = SkuPriceFetcher.fetch(product_id)
+    @taobao_id = params['id'].first
+    @sku_infos = SkuInfoFetcher.fetch(@taobao_id)
   end
 
   def find_images
@@ -220,7 +234,7 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
   end
 
   def update_prop_hash_with_prices(prop_hash)
-    if @sku_prices.empty?
+    if @sku_infos.empty?
       read_html_prices(prop_hash)
     else
       read_sku_prices(prop_hash)
@@ -238,8 +252,8 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
 
   def read_sku_prices(prop_hash)
     sku_id = prop_hash['sku_id']
-    prop_hash['promo_price'] = @sku_prices[sku_id]['promo_price']
-    prop_hash['original_price'] = @sku_prices[sku_id]['original_price']
+    prop_hash['promo_price'] = @sku_infos[sku_id]['promo_price']
+    prop_hash['original_price'] = @sku_infos[sku_id]['original_price']
   end
 
   def find_original_price(html_doc)
@@ -276,6 +290,7 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
   end
 
   def translate_attributes
+    @original_title = @title
     @title = Translator.translate(@title)
 
     @translated_props = {}
@@ -292,7 +307,7 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
         "inventory_policy" => "continue",
         "inventory_quantity" => 10,
         "price" => variant['promo_price'],
-        "product_id" => variant['id'].to_i,
+        # "product_id" => variant['id'].to_i,
         "requires_shipping" => true,
         "sku" => variant['sku_id'],
         "title" => "pink#{rand(100)}",
@@ -310,6 +325,21 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
       data[option] = translated_prop
     end
     return data
+  end
+
+  def save_unparsed_skus
+    saved_skus = @product.variants.map { |variant| variant.sku }
+
+    @sku_infos.each do |sku, _|
+      break if @db_product.variants.count >= 100
+      save_unparsed_sku(sku) unless saved_skus.include?(sku)
+    end
+  end
+
+  def save_unparsed_sku(sku)
+    Variant.create(sku: sku,
+                   product_id: @db_product.id,
+                   parsed: false)
   end
 
 end
