@@ -18,7 +18,7 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     end
 
     if @product.errors.messages.empty?
-      update_variant_images
+      create_variant_images
       @product.taobao_id = @taobao_id
       @product.original_title = @original_title
       @db_product = Product.copy_shopify(@product)
@@ -32,8 +32,6 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
 
     # variant = product.variants.unparsed.first
     variant = product.variants.parsed.first # test
-
-
     sku_infos = SkuInfoFetcher.fetch(product.taobao_product_id)
     sku_info = sku_infos[variant.sku]
     variant.patch_unparsed_sku(sku_info, shopify_product)
@@ -41,33 +39,15 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
 
   private
 
-  def update_variant_images
-    map_images
-    find_image_options
-    @product.variants.each do |variant|
-      @product.images.each do |image|
-        next unless image.respond_to?(:option) # not a variant image
-        if variant.send(image.option) == image.prop['variant_name']
-          variant.image_id = image.id
-          next
-        end
-      end
-    end
-    @product.save
-  end
-
-  def map_images #images returned after saving product and variant_images
-    @product.images.each do |product_img|
-      @variant_images.each do |prop_name, variants|
-        variants.each do |variant_name, variant_img|
-          # below two lines might need refactoring
-          product_img_src = product_img.src.split('/products/').second.split('?').first.split('600x600q90').first + '600x600q90.jpg'
-          variant_img = variant_img.split(/\/uploaded\/.*\//).second.sub('!!', '_')
-
-          if product_img_src == variant_img
-            product_img.prop = {'prop_name' => @translated_props[prop_name], 'variant_name' => @translated_props[variant_name]}
-          end
-        end
+  def create_variant_images
+    @variant_images.each do |option, images|
+      images.each do |prop_name, image_src|
+        new_image = {'product_id': @product.id, 'src': image_src}
+        prop_name = @translated_props[prop_name]
+        variants = @product.variants.select { |v| v.send(option) == prop_name }
+        variant_ids = variants.map { |v| v.id }
+        new_image['variant_ids'] = variant_ids
+        new_image = ShopifyAPI::Image.create(new_image)
       end
     end
   end
@@ -84,9 +64,9 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
   end
 
   def get_product_attrs
-    url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.3e2e4a3dh91FYr&id=535772624331&cm_id=140105335569ed55e27b&abbucket=20'
+    # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.3e2e4a3dh91FYr&id=535772624331&cm_id=140105335569ed55e27b&abbucket=20'
     # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.1359e702S5c2xx&id=26125852732&cm_id=140105335569ed55e27b&abbucket=9'
-    # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.39c53556D82FMW&id=14217694831'
+    url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.39c53556D82FMW&id=14217694831'
     # url = 'https://detail.tmall.com/item.htm?spm=a220m.1000858.1000725.81.d8240d1LXPOq0&id=545820790679&areaId=310100&user_id=2956245271&cat_id=2&is_b=1&rn=d445d1370db8d1e2b943188b94b1bde2'
 
     @browser = Watir::Browser.new :chrome
@@ -154,7 +134,8 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     variants = props[level].lis
     variants = choose_variants(variants)
 
-    store_variant_images(prop_name, props[level].ul)
+    # store_variant_images(prop_name, props[level].ul)
+    store_variant_images(level, props[level].ul)
 
     variants.each do |variant|
       break if @variants.length == 100
@@ -199,19 +180,21 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     variants
   end
 
-  def store_variant_images(prop_name, variant_list)
+  def store_variant_images(level, variant_list) # test to upload images through image api
     doc = Nokogiri::HTML(variant_list.html)
     variants = doc.css('li')
     first_variant_style = variants.first.css('a').first.attributes['style']
     return unless first_variant_style # if first variant doesn't have style, other variants most likely also don't have it
-    @variant_images[prop_name] = {}
+
+    option = "option#{level}"
+    @variant_images[option] = {}
     variants.each do |variant|
       style = variant.css('a').first.attributes['style']
       variant_img = style.value.scan(/\(.*\)/).first.tr('()', '') unless style.nil?
       variant_img = 'https:' + variant_img.sub('jpg_40x40q90', 'jpg_600x600q90')
-      variant_img = 'https://img.alicdn.com/bao/uploaded/i2/' + variant_img.split(/\/uploaded\/.*\/\d*\//).second #getting rid of unnecessary part for easier comparison with return product.images
       variant_name = variant.attributes['title'].value
-      @variant_images[prop_name][variant_name] = variant_img
+
+      @variant_images[option][variant_name] = variant_img
     end
   end
 
@@ -278,14 +261,7 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
     variants = @variants.map { |variant| create_variant(variant) }
     attrs['variants'] = variants
 
-    # attrs['images'] = []
     attrs['images'] = @product_images
-    @variant_images.each do |_, variants|
-      variants.each do |_, variant_img|
-        attrs['images'] << {'src': variant_img}
-      end
-    end
-
     return attrs
   end
 
@@ -307,7 +283,6 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
         "inventory_policy" => "continue",
         "inventory_quantity" => 10,
         "price" => variant['promo_price'],
-        # "product_id" => variant['id'].to_i,
         "requires_shipping" => true,
         "sku" => variant['sku_id'],
         "title" => "pink#{rand(100)}",
