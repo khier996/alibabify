@@ -27,14 +27,16 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
   end
 
   def kurut
-    product = Product.last
-    shopify_product = ShopifyAPI::Product.find(product.shopify_product_id)
+    # product = Product.last
+    # shopify_product = ShopifyAPI::Product.find(product.shopify_product_id)
 
-    # variant = product.variants.unparsed.first
-    variant = product.variants.parsed.first # test
-    sku_infos = SkuInfoFetcher.fetch(product.taobao_product_id)
-    sku_info = sku_infos[variant.sku]
-    variant.patch_unparsed_sku(sku_info, shopify_product)
+    # # variant = product.variants.unparsed.first
+    # variant = product.variants.parsed.first # test
+    # sku_infos = SkuInfoFetcher.fetch(product.taobao_product_id)
+    # sku_info = sku_infos[variant.sku]
+    # variant.patch_unparsed_sku(sku_info, shopify_product)
+
+    ProductUpdater.new.update_products(Product.all)
   end
 
   private
@@ -64,9 +66,9 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
   end
 
   def get_product_attrs
-    # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.3e2e4a3dh91FYr&id=535772624331&cm_id=140105335569ed55e27b&abbucket=20'
+    url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.3e2e4a3dh91FYr&id=535772624331&cm_id=140105335569ed55e27b&abbucket=20'
     # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.1359e702S5c2xx&id=26125852732&cm_id=140105335569ed55e27b&abbucket=9'
-    url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.39c53556D82FMW&id=14217694831'
+    # url = 'https://detail.tmall.com/item.htm?spm=a230r.1.14.6.39c53556D82FMW&id=14217694831'
     # url = 'https://detail.tmall.com/item.htm?spm=a220m.1000858.1000725.81.d8240d1LXPOq0&id=545820790679&areaId=310100&user_id=2956245271&cat_id=2&is_b=1&rn=d445d1370db8d1e2b943188b94b1bde2'
 
     @browser = Watir::Browser.new :chrome

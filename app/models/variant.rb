@@ -9,13 +9,17 @@ class Variant < ActiveRecord::Base
   scope :unparsed, -> { where(parsed: false) }
 
   def update_info(sku_info, shopify_product)
-    self.price = sku_info['price']
-    self.compare_at_price = sku['compare_at_price']
-    self.save
+    if self.price != sku_info['promo_price'] || self.compare_at_price != sku_info['original_price']
+      @shopify_product = shopify_product
+      self.price = sku_info['promo_price']
+      self.compare_at_price = sku_info['original_price']
+      self.save
 
-    shopify_variant = @shopify_product.variants.find { |v| v.sku == self.sku }
-    shopify_variant.price = self.price
-    shopify_variant.compare_at_price = self.compare_at_price
+      shopify_variant = @shopify_product.variants.find { |v| v.sku == self.sku }
+      shopify_variant.price = self.price
+      shopify_variant.compare_at_price = self.compare_at_price
+      shopify_variant.inventory_quantity = sku_info['quantity']
+    end
   end
 
   def patch_unparsed_sku(sku_info, shopify_product)
@@ -65,7 +69,10 @@ class Variant < ActiveRecord::Base
     end
 
     new_variant = ShopifyAPI::Variant.create(new_variant)
-    create_variant_image(new_variant) if new_variant.errors.messages.empty?
+    if new_variant.errors.messages.empty?
+      self.update(shopify_variant_id: new_variant.id)
+      create_variant_image(new_variant)
+    end
   end
 
   def find_prop_image(prop)
