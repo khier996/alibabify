@@ -1,17 +1,18 @@
-<div class="row">
-	<div class="column small-12">
-
-		<h2>Dashboard</h2>
-
-		<h3>Products</h3>
-
-		<ul>
-			<% @products.each do |product| %>
-				<li><%= product.title %></li>
-			<% end %>
-		</ul>
-
-    <%= link_to bulk_upload_path, 'bulk_upload' %>
-    <%= link_to update_products_path, 'update_products' %>
-	</div>
+<div class="dashboard-wrapper">
+  <p><%= link_to 'Bulk upload', bulk_upload_path, class: 'dashboard-btn' %></p>
+  <p><%= link_to 'Update products', update_products_path, class: 'dashboard-btn' %></p>
 </div>
+
+<style>
+  .dashboard-btn {
+    display: inline-block;
+    background-color: #43477D;
+    color: white;
+    width: 300px;
+    border-radius: 5px;
+    text-align: center;
+    padding: 10px 0px;
+    text-decoration: none;
+  }
+
+</style>

@@ -1,13 +1,36 @@
-<button id='add-url-btn'>Add URL</button>
+<html>
+<div class="dashboard-wrapper">
+  <button id='add-url-btn' class='add-url-btn'>Add URL</button>
 
-<%= form_tag('/parse_pages', method: :post, id: 'product-url-form') do %>
-  <%= text_field_tag :url_1, '', class: 'url-input', placeholder: 'paste url here' %>
-  <%= submit_tag 'Submit', id: 'bulk-upload-btn' %>
-<% end %>
+  <%= form_tag('/parse_pages', method: :post, id: 'product-url-form') do %>
+    <%= text_field_tag :url_1, '', class: 'url-input', placeholder: 'paste url here' %>
+    <%= submit_tag 'Submit', id: 'bulk-upload-btn', class: 'add-url-btn' %>
+  <% end %>
+</div>
+</html>
 
 <style>
  .url-input {
     display: block;
     width: 80%;
+    margin: 10px auto;
+    height: 25px;
+    outline: none;
+    border-radius: 3px;
+    border: 1px solid #34BB94;
+ }
+
+ .add-url-btn {
+    padding: 10px 20px;
+    background-color: white;
+    border-radius: 3px;
+    border: 1px solid #5D6CC2;
+    cursor: pointer;
+    outline: none;
+ }
+ .add-url-btn:hover {
+    background-color: #5D6CC2;
+    color: white;
+    transition: all 0.3s ease-in-out;
  }
 </style>

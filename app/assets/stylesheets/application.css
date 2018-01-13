@@ -14,3 +14,7 @@
  *= require_self
  *
  */
+
+ .dashboard-wrapper{
+    text-align: center;
+  }

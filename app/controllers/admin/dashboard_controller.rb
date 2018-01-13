@@ -4,7 +4,6 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
   require 'open-uri'
 
   def index
-    @products = ShopifyAPI::Product.find(:all, :params => {:limit => 10})
   end
 
   def bulk_upload
