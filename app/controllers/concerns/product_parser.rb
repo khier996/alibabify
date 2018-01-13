@@ -6,13 +6,19 @@ class ProductParser
       url.sub(/&skuId=\d*/, '') # removing skuId from url
     end
 
-    begin
-      urls.each { |url| parse_product(url) unless url.empty? }
-    rescue => exception
-      # need to write down the exception into db
-      byebug
-    ensure
-      @browser.close
+    urls.each do |url|
+      begin
+        next if url.empty?
+        current_url = url # for saving in error
+        parse_product(url)
+      rescue => exception
+        Error.create(url: current_url,
+                     exception: exception.message,
+                     backtrace: exception.backtrace.to_json)
+        next
+      ensure
+        @browser.close if @browser && url == urls.last
+      end
     end
   end
 
@@ -76,7 +82,8 @@ class ProductParser
   end
 
   def fetch_sku_infos
-    params = CGI.parse(@browser.url)
+    query = @browser.url.split('?').second
+    params = CGI.parse(query)
     @taobao_id = params['id'].first
     @sku_infos = SkuInfoFetcher.fetch(@taobao_id)
   end
