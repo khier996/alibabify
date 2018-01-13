@@ -22,18 +22,16 @@ class Variant < ActiveRecord::Base
     end
   end
 
-  def patch_unparsed_sku(sku_info, shopify_product)
+  def patch_unparsed_sku(sku_info, shopify_product, browser)
+    @browser = browser
     @shopify_product = shopify_product
     @sku_info = sku_info
-    if sku_info['quantity'] != 0
-      parse_sku
-    end
+    parse_sku if sku_info['quantity'] != 0
   end
 
   def parse_sku
     product_id = self.product.taobao_product_id
     url = "https://detail.tmall.com/item.htm?id=#{product_id}&skuId=#{self.sku}"
-    @browser = Watir::Browser.new :chrome
     @browser.goto(url)
     @browser.wait(5)
 
@@ -43,7 +41,6 @@ class Variant < ActiveRecord::Base
     end
     find_option_indexes
     read_sku_info
-    @browser.close
   end
 
   def find_option_indexes
@@ -70,7 +67,7 @@ class Variant < ActiveRecord::Base
 
     new_variant = ShopifyAPI::Variant.create(new_variant)
     if new_variant.errors.messages.empty?
-      self.update(shopify_variant_id: new_variant.id)
+      self.update(shopify_variant_id: new_variant.id, parsed: true)
       create_variant_image(new_variant)
     end
   end

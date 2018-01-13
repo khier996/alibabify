@@ -5,7 +5,9 @@ Rails.application.routes.draw do
 
   root :to => 'admin/dashboard#index'
 
-  get '/kurut', to: 'admin/dashboard#kurut'
+  get '/bulk_upload', to: 'admin/dashboard#bulk_upload'
+  post '/parse_pages', to: 'admin/dashboard#parse_pages'
+  get '/update_products', to: 'admin/dashboard#update_products'
 
   # the ProxyController will pick up ApplicationProxy requests
   # and forward valid ones on to the pages#show action

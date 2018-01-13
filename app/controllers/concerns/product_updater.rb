@@ -16,12 +16,14 @@ class ProductUpdater
       db_variant.update_info(sku_info, @shopify_product)
     end
 
+    browser = Watir::Browser.new :chrome unless db_product.variants.unparsed.empty?
+
     db_product.variants.unparsed.each do |db_variant|
       sku_info = @sku_infos[db_variant.sku]
-      db_variant.patch_unparsed_sku(sku_info, @shopify_product)
+      db_variant.patch_unparsed_sku(sku_info, @shopify_product, browser)
     end
 
-    @shopify_product.save
+    browser.close
   end
 end
 

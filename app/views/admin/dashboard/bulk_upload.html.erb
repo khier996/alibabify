@@ -1,0 +1,13 @@
+<button id='add-url-btn'>Add URL</button>
+
+<%= form_tag('/parse_pages', method: :post, id: 'product-url-form') do %>
+  <%= text_field_tag :url_1, '', class: 'url-input', placeholder: 'paste url here' %>
+  <%= submit_tag 'Submit', id: 'bulk-upload-btn' %>
+<% end %>
+
+<style>
+ .url-input {
+    display: block;
+    width: 80%;
+ }
+</style>
