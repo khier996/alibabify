@@ -15,6 +15,10 @@
  *
  */
 
+ body {
+  font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
+ }
+
  .dashboard-wrapper{
     text-align: center;
   }

@@ -10,7 +10,13 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
   end
 
   def parse_pages
-    ProductParser.new.parse(params)
+
+    urls = params.select { |param,_| param.match(/url_\d*/) }
+    urls = urls.map do |_, url|
+      url.sub(/&skuId=\d*/, '') # removing skuId from url
+    end
+    BulkUploadWorker.perform_async(urls, @shop_session.token)
+    # ProductParser.new.parse(params)
   end
 
   def update_products

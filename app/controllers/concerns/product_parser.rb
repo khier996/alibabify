@@ -1,10 +1,8 @@
 class ProductParser
 
-  def parse(params)
-    urls = params.select { |param,_| param.match(/url_\d*/) }
-    urls = urls.map do |_, url|
-      url.sub(/&skuId=\d*/, '') # removing skuId from url
-    end
+  def parse(urls, session_token)
+    session = ShopifyAPI::Session.new('kurut.shopify.com', session_token)
+    ShopifyAPI::Base.activate_session(session)
 
     urls.each do |url|
       begin
