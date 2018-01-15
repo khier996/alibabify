@@ -24,6 +24,8 @@ default: &default
 development:
   <<: *default
   database: shopify_app_development
+  username: khier996
+  password: <%= ENV['STARTER-APP_DATABASE_PASSWORD'] %>
 
   # The specified database role being used to connect to postgres.
   # To create additional roles in postgres see `$ createuser --help`.
@@ -81,5 +83,5 @@ test:
 production:
   <<: *default
   database: shopify_app_production
-  username: shopify_app
-  password: <%= ENV['STARTER-APP_DATABASE_PASSWORD'] %>
+  username: khier996
+  # password: <%= ENV['STARTER-APP_DATABASE_PASSWORD'] %>
