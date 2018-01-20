@@ -1,0 +1,5 @@
+development:
+  :logfile: ./log/sidekiq_development.log
+
+production:
+  :logfile: ./log/sidekiq_production.log
