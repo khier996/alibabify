@@ -63,6 +63,7 @@ gem 'web-console', '~> 2.0'
 
 gem 'selenium-webdriver'
 gem 'watir'
+gem 'headless'
 gem 'nokogiri'
 gem 'httparty'
 gem 'sidekiq'

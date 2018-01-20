@@ -1,4 +1,5 @@
 class ProductParser
+  require 'headless'
 
   def parse(urls, session_token)
     session = ShopifyAPI::Session.new('kurut.shopify.com', session_token)
@@ -16,6 +17,7 @@ class ProductParser
         next
       ensure
         @browser.close if @browser && url == urls.last
+        @headless.destroy if @headless
       end
     end
   end
@@ -61,7 +63,11 @@ class ProductParser
   end
 
   def get_product_attrs(url)
-    @browser ||= Watir::Browser.new :chrome
+    @headless = Headless.new
+    @headless.start
+    # @browser ||= Watir::Browser.new :chrome
+    @browser ||= Watir::Browser.new :chrome, :switches => %w[--no-sandbox]
+
     @browser.goto(url)
     @browser.wait(5)
 
