@@ -10,6 +10,11 @@ class ProductParser
         next if url.empty?
         current_url = url # for saving in error
         parse_product(url)
+
+        @browser.close if @browser
+        @browser = nil
+        @headless.destroy if @headless
+        @headless = nil
       rescue => exception
         Error.create(url: current_url,
                      exception: exception.message,
