@@ -16,10 +16,13 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
       url.sub(/&skuId=\d*/, '') # removing skuId from url
     end
     BulkUploadWorker.perform_async(urls, @shop_session.token)
-    # ProductParser.new.parse(params)
+    # ProductParser.new.parse(urls, @shop_session.token) # for tests on local machine
   end
 
   def update_products
     ProductUpdater.new.update_products(Product.all)
+  end
+
+  def dictionary_lookup
   end
 end

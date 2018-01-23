@@ -1,0 +1,131 @@
+<div>
+  <%= text_field_tag :prefix, '', class: 'url-input', id: 'prefix-input', placeholder: 'type a phrase' %>
+
+  <table id='lookup-results'></table>
+
+  <div id="edit-modal-wrapper" class='hidden'>
+    <div class='veil'></div>
+    <div id='edit-modal'>
+    <div id='edit-modal__original-dummy' name='original'></div>
+      <%= form_tag('/edit_dictionary_entry', id: 'edit-form', method: :post, remote: true) do %>
+        <input type="hidden" name='original' id='edit-modal__original'>
+        <input type="text" name='translation' id='edit-modal__translation'>
+        <div class='edit-modal-btns'>
+          <button type='button' id='edit-modal-cancel' class='btn-cancel'>Cancel</button>
+          <button type='button' id='edit-modal-confirm' class='btn-confirm'>Change</button>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class='update-status-modal hidden' id='success-modal'>
+    <img class='status-icon' src="https://cdn2.iconfinder.com/data/icons/perfect-flat-icons-2/512/Ok_check_yes_tick_accept_success_green_correct.png" alt="">
+    <div id='success-message' class='status-message'></div>
+    <button id='success-confirm-btn' class='btn-confirm'>OK</button>
+  </div>
+
+  <div class='update-status-modal hidden' id='error-modal'>
+    <img class='status-icon' src="https://d2gg9evh47fn9z.cloudfront.net/thumb_COLOURBOX8097643.jpg" alt="">
+    <div id='error-message' class='status-message'></div>
+    <button id='error-confirm-btn' class='btn-confirm'>OK</button>
+  </div>
+
+</div>
+
+<style>
+  #edit-modal {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    z-index: 10;
+    width: 400px;
+    text-align: center;
+    padding: 40px 0px;
+    border-radius: 3px;
+    box-shadow: 2px 2px 2px lightgrey;
+  }
+
+  #edit-modal__original-dummy {
+    margin-bottom: 20px;
+  }
+
+  #edit-modal__translation {
+    border: none;
+    border-bottom: 1px solid #E2E3E6;
+    outline: none;
+    width: 80%;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  .edit-modal-btns {
+    margin-top: 20px;
+  }
+
+  .entry-edit-btn {
+    width: 90px;
+    height: 30px;
+    background-color: #1D255E;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  #lookup-results {
+    width: 90%;
+    margin: 0 auto;
+    border-collapse: collapse;
+    background-color: white;
+    margin-top: 20px;
+  }
+
+  #prefix-input {
+    display: block;
+    width: 70%;
+    margin: 0 auto;
+    font-size: 16px;
+    height: 25px;
+    border-radius: 2px;
+    border: 1px solid #2F366B;
+    outline: none;
+  }
+
+  #lookup-results td {
+    width: 33.3%;
+    text-align: center;
+    border-bottom: 1px solid #E3E5E7;
+  }
+  .dictionary-entry {
+    width: 100%;
+    height: 40px;
+  }
+  .dictionary-entry:hover {
+    background-color: #e5e7ff;
+  }
+
+  .update-status-modal {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 40%;
+    background-color: white;
+    width: 300px;
+    border-radius: 3px;
+    text-align: center;
+    padding: 20px 0px;
+    box-shadow: 2px 2px 2px lightgrey;
+  }
+
+  .status-message {
+    width: 90%;
+    margin: 10px auto;
+  }
+
+  .status-icon {
+    height: 60px;
+  }
+</style>

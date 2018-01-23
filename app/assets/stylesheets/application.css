@@ -19,6 +19,47 @@
   font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
  }
 
- .dashboard-wrapper{
-    text-align: center;
-  }
+.dashboard-wrapper{
+  text-align: center;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.veil {
+  position: fixed;
+  left: 0px;
+  top: 0px;
+  bottom: 0px;
+  right: 0px;
+  background-color: rgb(183, 183, 188);
+  opacity: 0.3;
+}
+
+
+/********************************** BUTTONS **********************************/
+
+.btn-cancel {
+  background-color: #EB5D46;
+  color: white;
+  width: 90px;
+  height: 30px;
+  border: none;
+  border-radius: 2px;
+  margin: 0px 5px;
+  outline: none;
+  cursor: pointer;
+}
+
+.btn-confirm {
+  width: 90px;
+  height: 30px;
+  border: none;
+  background-color: #34BB94;
+  color: white;
+  border-radius: 2px;
+  margin: 0px 5px;
+  outline: none;
+  cursor: pointer;
+}

@@ -13,6 +13,10 @@ Rails.application.routes.draw do
   post '/parse_pages', to: 'admin/dashboard#parse_pages'
   get '/update_products', to: 'admin/dashboard#update_products'
 
+  get '/dictionary_lookup', to: 'admin/dashboard#dictionary_lookup'
+  get '/dictionary_complete', to: 'dictionary#complete'
+  post '/edit_dictionary_entry', to: 'dictionary#edit_entry'
+
   # the ProxyController will pick up ApplicationProxy requests
   # and forward valid ones on to the pages#show action
   get 'proxy' => 'proxy#index'

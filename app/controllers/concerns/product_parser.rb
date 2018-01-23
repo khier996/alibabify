@@ -1,6 +1,10 @@
 class ProductParser
   require 'headless'
 
+  def initialize
+    @translator = Translator.new
+  end
+
   def parse(urls, session_token)
     session = ShopifyAPI::Session.new('kurut.shopify.com', session_token)
     ShopifyAPI::Base.activate_session(session)
@@ -70,8 +74,9 @@ class ProductParser
   def get_product_attrs(url)
     @headless ||= Headless.new
     @headless.start
-    # @browser ||= Watir::Browser.new :chrome
     @browser ||= Watir::Browser.new :chrome, :switches => %w[--no-sandbox]
+
+    # @browser ||= Watir::Browser.new :chrome # for tests on local machine
 
     @browser.goto(url)
     @browser.wait(5)
@@ -110,7 +115,7 @@ class ProductParser
     return if images.empty?
     doc.css('#J_UlThumb img').each do |img|
       img_src = img.attributes['src'].value
-      img_src = 'https:' + img_src.sub('jpg_60x60q90', 'jpg_800x800q90')
+      img_src = 'https:' + img_src.sub('60x60q90', '800x800q90')
       @product_images << {'src': img_src}
     end
   end
@@ -274,11 +279,11 @@ class ProductParser
 
   def translate_attributes
     @original_title = @title
-    @title = Translator.translate(@title)
+    @title = @translator.translate(@title)
 
     @translated_props = {}
     @variants.first['props'].each do |prop, _|
-      @translated_props[prop] = Translator.translate(prop)
+      @translated_props[prop] = @translator.translate(prop, remember: true)
     end
   end
 
@@ -301,7 +306,7 @@ class ProductParser
       if prop[1] == prop[1].to_i.to_s # prop is a number and doesn't need translation
         translated_prop = prop[1]
       else
-        translated_prop = @translated_props[prop[1]] || Translator.translate(prop[1])
+        translated_prop = @translated_props[prop[1]] || @translator.translate(prop[1], remember: true)
         @translated_props[prop[1]] = translated_prop
       end
       data[option] = translated_prop
