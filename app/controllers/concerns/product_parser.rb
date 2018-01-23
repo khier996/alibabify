@@ -104,7 +104,8 @@ class ProductParser
 
   def find_images
     @browser.execute_script('window.scrollBy(0, 1000)')
-    sleep(1)
+    # sleep(1)
+    @browser.wait(1)
     doc = Nokogiri::HTML(@browser.html)
     find_product_images(doc)
     find_body_images(doc)
@@ -152,7 +153,8 @@ class ProductParser
 
       if level >= props.count - 1
         next unless @browser.url.include?('skuId')
-        sleep(0.1)
+        # sleep(0.1)
+        @browser.wait(0.1)
         prop_hash = update_prop_hash_with_ids(prop_hash, variant)
         prop_hash['props'] = prop_hash['props'].clone
         prop_hash['props'][prop_name] = variant_name
@@ -160,7 +162,8 @@ class ProductParser
         @variants << prop_hash.clone if prop_hash['sku_id']
 
         variant.as.first.click if variants.last == variant #unclick the variant to make sure the lower level variant is clickable
-        sleep(0.5)
+        # sleep(0.5)
+        @browser.wait(0.1)
         next
       else
         prop_hash['props'] = prop_hash['props'].clone
@@ -221,11 +224,14 @@ class ProductParser
   end
 
   def reclick(variant)
-    sleep(3)
+    # sleep(3)
+    @browser.wait(1)
     variant.as.first.click
-    sleep(3)
+    # sleep(3)
+    @browser.wait(1)
     variant.as.first.click
-    sleep(3)
+    # sleep(3)
+    @browser.wait(1)
   end
 
   def update_prop_hash_with_prices(prop_hash)
