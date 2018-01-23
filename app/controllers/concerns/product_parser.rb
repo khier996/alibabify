@@ -72,11 +72,11 @@ class ProductParser
   end
 
   def get_product_attrs(url)
-    @headless ||= Headless.new(display: rand(99))
-    @headless.start
-    @browser ||= Watir::Browser.new :chrome, :switches => %w[--no-sandbox]
+    # @headless ||= Headless.new(display: rand(99))
+    # @headless.start
+    # @browser ||= Watir::Browser.new :chrome, :switches => %w[--no-sandbox]
 
-    # @browser ||= Watir::Browser.new :chrome # for tests on local machine
+    @browser ||= Watir::Browser.new :chrome # for tests on local machine
 
     @browser.goto(url)
     @browser.wait(5)
@@ -270,10 +270,11 @@ class ProductParser
 
     @variants.first['props'].each { |prop, _| attrs['options'] << {'name' => @translated_props[prop]} }
 
-    variants = @variants.map { |variant| create_variant(variant) }
-    attrs['variants'] = variants
+    attrs['variants'] = @variants.map { |variant| create_variant(variant) }
 
     attrs['images'] = @product_images
+
+    attrs['metafields']  = [{key: 'taobao_id', value: @taobao_id, namespace: 'alibabify_app', value_type: 'string'}]
     return attrs
   end
 
