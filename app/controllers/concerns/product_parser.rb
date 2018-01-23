@@ -72,7 +72,7 @@ class ProductParser
   end
 
   def get_product_attrs(url)
-    @headless ||= Headless.new
+    @headless ||= Headless.new(display: rand(99))
     @headless.start
     @browser ||= Watir::Browser.new :chrome, :switches => %w[--no-sandbox]
 
