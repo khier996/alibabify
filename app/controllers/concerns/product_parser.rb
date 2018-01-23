@@ -23,6 +23,7 @@ class ProductParser
         Error.create(url: current_url,
                      exception: exception.message,
                      backtrace: exception.backtrace.to_json)
+        delete_failed_product
         next
       ensure
         @browser.close if @browser && url == urls.last
@@ -334,5 +335,13 @@ class ProductParser
     Variant.create(sku: sku,
                    product_id: @db_product.id,
                    parsed: false)
+  end
+
+  def delete_failed_product
+    return unless @product
+    return if @product.id.nil?
+
+    @product.destroy
+    @db_product.destroy
   end
 end

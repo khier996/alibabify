@@ -7,6 +7,7 @@ class ProductUpdater
       @shopify_product =  ShopifyAPI::Product.find(db_product.shopify_product_id)
       @sku_infos = SkuInfoFetcher.fetch(db_product.taobao_product_id)
       update_product(db_product)
+      @shopify_product.save
     end
   end
 
@@ -16,14 +17,21 @@ class ProductUpdater
       db_variant.update_info(sku_info, @shopify_product)
     end
 
-    browser = Watir::Browser.new :chrome unless db_product.variants.unparsed.empty?
+    unless db_product.variants.unparsed.empty?
+      headless ||= Headless.new(display: rand(99))
+      headless.start
+      browser ||= Watir::Browser.new :chrome, :switches => %w[--no-sandbox]
+
+      # browser ||= Watir::Browser.new :chrome # for test on local machine
+    end
 
     db_product.variants.unparsed.each do |db_variant|
       sku_info = @sku_infos[db_variant.sku]
       db_variant.patch_unparsed_sku(sku_info, @shopify_product, browser)
     end
 
-    browser.close
+    browser.close if defined? browser
+    headless.destroy if defined? headless
   end
 end
 
