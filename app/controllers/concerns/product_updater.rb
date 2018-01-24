@@ -3,11 +3,13 @@
 class ProductUpdater
 
   def update_products(products)
+    return unless ItemApiMonitor.safe_to_use
     products.each do |db_product|
       @shopify_product =  ShopifyAPI::Product.find(db_product.shopify_product_id)
       @sku_infos = SkuInfoFetcher.fetch(db_product.taobao_product_id)
       update_product(db_product)
       @shopify_product.save
+      sleep(rand(10))
     end
   end
 

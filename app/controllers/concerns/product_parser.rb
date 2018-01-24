@@ -3,6 +3,7 @@ class ProductParser
 
   def initialize
     @translator = Translator.new
+    @redis = Redis.new(port: 6379, db: 0)
   end
 
   def parse(urls, session_token)
@@ -11,32 +12,36 @@ class ProductParser
 
     urls.each do |url|
       begin
-        next if url.empty?
+        next if url.empty? or not_tmall(url)
         current_url = url # for saving in error
         parse_product(url)
-
-        @browser.close if @browser
-        @browser = nil
-        @headless.destroy if @headless
-        @headless = nil
+        close_browser
       rescue => exception
         Error.create(url: current_url,
                      exception: exception.message,
                      backtrace: exception.backtrace.to_json)
         delete_failed_product
-        @browser.close if @browser
-        @browser = nil
-        @headless.destroy if @headless
-        @headless = nil
+        close_browser
         next
       ensure
-        @browser.close if @browser
-        @headless.destroy if @headless
+        close_browser
       end
     end
+    @redis.set('referer_url', urls.last) unless not_tmall(urls.last)
   end
 
   private
+
+  def not_tmall(url)
+    !url.include?('https://detail.tmall.com/item.htm?')
+  end
+
+  def close_browser
+    @browser.close if @browser
+    @browser = nil
+    @headless.destroy if @headless
+    @headless = nil
+  end
 
   def parse_product(url)
     @product = ShopifyAPI::Product.new
