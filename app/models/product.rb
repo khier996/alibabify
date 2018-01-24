@@ -24,4 +24,9 @@ class Product < ActiveRecord::Base
 
     end
   end
+
+  def self.random(sample_count)
+    product_ids = Product.all.select(:id).map(&:id).sample(sample_count)
+    Product.find(product_ids)
+  end
 end

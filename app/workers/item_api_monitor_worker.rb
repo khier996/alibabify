@@ -1,7 +1,8 @@
 class ItemApiMonitorWorker
   include Sidekiq::Worker
 
-  def perform(*args)
-    # Do something
+  def perform(options = {product_count: 3})
+    ItemApiMonitor.monitor(options[:product_count])
   end
 end
+

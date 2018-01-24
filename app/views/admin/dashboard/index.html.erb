@@ -1,5 +1,10 @@
 <div class="dashboard-wrapper">
-  <p><%= link_to 'Bulk upload', bulk_upload_path, class: 'dashboard-btn' %></p>
+  <% if @safe_to_use %>
+    <p><a href="/bulk_upload" class='dashboard-btn'>Bulk upload</a>
+  <% else %>
+    <p><a href="/bulk_upload" class='dashboard-btn btn-disabled link-not-active'>Bulk upload</a>
+  <% end %>
+
   <p><%= link_to 'Update products', update_products_path, class: 'dashboard-btn' %></p>
   <p><%= link_to 'Dictionary', dictionary_lookup_path, class: 'dashboard-btn' %></p>
 </div>

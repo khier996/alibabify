@@ -37,6 +37,10 @@
   opacity: 0.3;
 }
 
+.link-not-active {
+  pointer-events: none;
+}
+
 
 /********************************** BUTTONS **********************************/
 
@@ -62,4 +66,8 @@
   margin: 0px 5px;
   outline: none;
   cursor: pointer;
+}
+
+.btn-disabled {
+  background-color: grey !important;
 }

@@ -4,6 +4,7 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
   require 'open-uri'
 
   def index
+    @safe_to_use = ItemApiMonitor.safe_to_use?
   end
 
   def bulk_upload

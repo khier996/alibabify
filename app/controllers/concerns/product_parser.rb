@@ -24,9 +24,13 @@ class ProductParser
                      exception: exception.message,
                      backtrace: exception.backtrace.to_json)
         delete_failed_product
+        @browser.close if @browser
+        @browser = nil
+        @headless.destroy if @headless
+        @headless = nil
         next
       ensure
-        @browser.close if @browser && url == urls.last
+        @browser.close if @browser
         @headless.destroy if @headless
       end
     end

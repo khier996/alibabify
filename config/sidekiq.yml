@@ -1,3 +1,6 @@
+:pool: 1
+:concurrency: 1
+
 development:
   :logfile: ./log/sidekiq_development.log
 
