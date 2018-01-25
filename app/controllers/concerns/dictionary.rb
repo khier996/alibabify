@@ -13,16 +13,16 @@ class Dictionary
 
   def write(original, translation)
     @redis.set(original, translation)
-    @redis.sadd(translation, original)
+    @redis.sadd("vn::#{translation}", original)
     write_prefixes(original, 'ch')
     write_prefixes(translation, 'vn')
   end
 
   def edit_entry(original, new_translation, old_translation)
     resp1 = @redis.set(original, new_translation) == 'OK'
-    resp2 = @redis.srem(old_translation, original)
-    resp3 = @redis.sadd(new_translation, original)
-    resp4 = @redis.zrem(:prefixes, old_translation + '**vn') if @redis.smembers(old_translation).empty?
+    resp2 = @redis.srem("vn::#{old_translation}", original)
+    resp3 = @redis.sadd("vn::#{new_translation}", original)
+    resp4 = @redis.zrem(:prefixes, old_translation + '**vn') if @redis.smembers("vn::#{old_translation}").empty?
     resp4 = true if resp4.nil?
     write_prefixes(new_translation, 'vn')
 
@@ -43,7 +43,7 @@ class Dictionary
         minlen = [entry.length, prefix.length].min
         break if entry[0...minlen] != prefix[0...minlen]
         originals << entry[0..-5] if entry[-4..-1] == '**ch'
-        originals.concat(@redis.smembers(entry[0..-5])) if entry[-4..-1] == '**vn'
+        originals.concat(@redis.smembers("vn::#{entry[0..-5]}")) if entry[-4..-1] == '**vn'
       end
     end
 
