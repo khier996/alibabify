@@ -9,6 +9,7 @@
     <div id='edit-modal__original-dummy' name='original'></div>
       <%= form_tag('/edit_dictionary_entry', id: 'edit-form', method: :post, remote: true) do %>
         <input type="hidden" name='original' id='edit-modal__original'>
+        <input type="hidden" name='old_translation' id='edit_modal__old-translation'>
         <input type="text" name='translation' id='edit-modal__translation'>
         <div class='edit-modal-btns'>
           <button type='button' id='edit-modal-cancel' class='btn-cancel'>Cancel</button>

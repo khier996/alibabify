@@ -81,6 +81,7 @@ var openEditModal = function(original) {
   $('#edit-modal-wrapper').removeClass('hidden')
   $('#edit-modal__original-dummy').html(original)
   $('#edit-modal__original').prop('value', original)
+  $('#edit_modal__old-translation').prop('value', entries[original])
   $('#edit-modal__translation').prop('value', entries[original])
 }
 
