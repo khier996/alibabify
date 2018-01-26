@@ -2,6 +2,7 @@ class Variant < ActiveRecord::Base
   require 'watir'
   require 'nokogiri'
   require 'open-uri'
+  require 'headless'
 
   belongs_to :product
 
@@ -22,11 +23,23 @@ class Variant < ActiveRecord::Base
     end
   end
 
-  def patch_unparsed_sku(sku_info, shopify_product, browser)
-    @browser = browser
-    @shopify_product = shopify_product
-    @sku_info = sku_info
-    parse_sku if sku_info['quantity'] != 0
+  def patch_unparsed_sku(sku_info, shopify_product)
+    begin
+      return if sku_info['quantity'] == 0
+      @headless ||= Headless.new(display: rand(99))
+      @headless.start
+      @browser ||= Watir::Browser.new :chrome, :switches => %w[--no-sandbox]
+
+      # @browser = Watir::Browser.new :chrome # for test on local machine
+
+      @translator = Translator.new
+      @shopify_product = shopify_product
+      @sku_info = sku_info
+      parse_sku
+    ensure
+      @browser.close if @browser
+      @headless.destroy if @headless
+    end
   end
 
   def parse_sku
@@ -35,10 +48,8 @@ class Variant < ActiveRecord::Base
     @browser.goto(url)
     @browser.wait(5)
 
-    if @browser.url != url
-      @browser.close
-      return
-    end
+    return if @browser.url != url
+
     find_option_indexes
     read_sku_info
   end
@@ -57,8 +68,8 @@ class Variant < ActiveRecord::Base
     props.each do |prop|
       prop_name = prop.parent.attributes['data-property'].value
       prop_value = prop.css('span').text
-      prop_name = Translator.translate(prop_name)
-      prop_value = Translator.translate(prop_value) unless prop_value == prop_value.to_i.to_s # prop_value is a number and doesn't need translation
+      prop_name = @translator.translate(prop_name)
+      prop_value = @translator.translate(prop_value) unless prop_value == prop_value.to_i.to_s # prop_value is a number and doesn't need translation
 
       option = "option#{@option_indexes[prop_name] + 1}"
       new_variant[option] = prop_value

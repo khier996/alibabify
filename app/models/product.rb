@@ -11,6 +11,24 @@ class Product < ActiveRecord::Base
     return product
   end
 
+  def self.random(sample_count)
+    product_ids = Product.all.select(:id).map(&:id).sample(sample_count)
+    Product.find(product_ids)
+  end
+
+  def incr_not_found
+    self.not_found_count += 1
+    if self.not_found_count >= 3 # coulnd't find corresponding shopify product 3 times. Means it was probably deleted.
+      destroy
+    else
+      save
+    end
+  end
+
+  def null_not_found
+    self.update(not_found_count: 0)
+  end
+
   private
 
   def self.copy_variants(product, shopify_product)
@@ -25,8 +43,4 @@ class Product < ActiveRecord::Base
     end
   end
 
-  def self.random(sample_count)
-    product_ids = Product.all.select(:id).map(&:id).sample(sample_count)
-    Product.find(product_ids)
-  end
 end

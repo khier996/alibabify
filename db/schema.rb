@@ -25,13 +25,14 @@ ActiveRecord::Schema.define(version: 20180113090838) do
   end
 
   create_table "products", force: :cascade do |t|
-    t.string   "taobao_product_id",  null: false
-    t.string   "shopify_product_id", null: false
-    t.string   "market",             null: false
-    t.string   "original_title",     null: false
-    t.string   "translated_title",   null: false
-    t.datetime "created_at",         null: false
-    t.datetime "updated_at",         null: false
+    t.string   "taobao_product_id",              null: false
+    t.string   "shopify_product_id",             null: false
+    t.string   "market",                         null: false
+    t.string   "original_title",                 null: false
+    t.string   "translated_title",               null: false
+    t.integer  "not_found_count",    default: 0
+    t.datetime "created_at",                     null: false
+    t.datetime "updated_at",                     null: false
   end
 
   add_index "products", ["shopify_product_id"], name: "index_products_on_shopify_product_id", using: :btree

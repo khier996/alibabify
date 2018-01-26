@@ -6,6 +6,7 @@ class CreateProducts < ActiveRecord::Migration
       t.string :market, null: false
       t.string :original_title, null: false
       t.string :translated_title, null: false
+      t.integer :not_found_count, default: 0
 
       t.timestamps null: false
     end

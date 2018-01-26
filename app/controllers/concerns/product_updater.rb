@@ -3,9 +3,15 @@
 class ProductUpdater
 
   def update_products(products)
-    return unless ItemApiMonitor.safe_to_use
+    return unless ItemApiMonitor.safe_to_use?
     products.each do |db_product|
-      @shopify_product =  ShopifyAPI::Product.find(db_product.shopify_product_id)
+      begin
+        @shopify_product =  ShopifyAPI::Product.find(db_product.shopify_product_id)
+        db_product.null_not_found
+      rescue
+        db_product.incr_not_found
+        next
+      end
       @sku_infos = SkuInfoFetcher.fetch(db_product.taobao_product_id)
       update_product(db_product)
       @shopify_product.save
@@ -19,21 +25,10 @@ class ProductUpdater
       db_variant.update_info(sku_info, @shopify_product)
     end
 
-    unless db_product.variants.unparsed.empty?
-      headless ||= Headless.new(display: rand(99))
-      headless.start
-      browser ||= Watir::Browser.new :chrome, :switches => %w[--no-sandbox]
-
-      # browser ||= Watir::Browser.new :chrome # for test on local machine
-    end
-
     db_product.variants.unparsed.each do |db_variant|
       sku_info = @sku_infos[db_variant.sku]
-      db_variant.patch_unparsed_sku(sku_info, @shopify_product, browser)
+      db_variant.patch_unparsed_sku(sku_info, @shopify_product)
     end
-
-    browser.close if defined? browser
-    headless.destroy if defined? headless
   end
 end
 
