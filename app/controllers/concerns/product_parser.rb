@@ -12,8 +12,8 @@ class ProductParser
 
     urls.each do |url_obj|
       begin
-        url = url_obj[:url]
-        next if url.empty? or not_tmall(url)
+        url = url_obj['url']
+        next if url.blank? or not_tmall(url)
         current_url = url # for saving in error
         parse_product(url_obj)
         close_browser
@@ -34,6 +34,7 @@ class ProductParser
   private
 
   def not_tmall(url)
+    return false unless url
     !url.include?('https://detail.tmall.com/item.htm?')
   end
 
@@ -45,7 +46,7 @@ class ProductParser
   end
 
   def parse_product(url_obj)
-    url = url_obj[:url]
+    url = url_obj['url']
     @product = ShopifyAPI::Product.new
     @product.attributes = get_product_attrs(url)
     @product.save
@@ -56,7 +57,7 @@ class ProductParser
       @product.original_title = @original_title
       @db_product = Product.copy_shopify(@product)
       save_unparsed_skus if @product.variants.count < 100
-      save_collects(url_obj[:collections])
+      save_collects(url_obj['collections'])
     end
   end
 
