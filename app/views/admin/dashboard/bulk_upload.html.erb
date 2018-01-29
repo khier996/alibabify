@@ -2,22 +2,48 @@
 <div class="dashboard-wrapper">
   <button id='add-url-btn' class='add-url-btn'>Add URL</button>
 
+  <select data-placeholder="Choose categories" multiple class="hidden" id='collection-mold'>
+    <% @collections.each do |collection| %>
+      <option value="<%= collection.id %>"><%= collection.title %></option>
+    <% end %>
+  </select>
+
   <%= form_tag('/parse_pages', method: :post, id: 'product-url-form') do %>
-    <%= text_field_tag :url_1, '', class: 'url-input', placeholder: 'paste url here' %>
+    <div class='url-wrapper'>
+      <%= text_field_tag :url_1, '', class: 'url-input', placeholder: 'paste url here' %>
+      <select name='collections_1[]' data-placeholder="Choose categories" multiple class="collections-dropdown hidden">
+        <% @collections.each do |collection| %>
+          <option value="<%= collection.id %>"><%= collection.title %></option>
+        <% end %>
+      </select>
+    </div>
+
     <%= submit_tag 'Submit', id: 'bulk-upload-btn', class: 'add-url-btn' %>
   <% end %>
+
+
 </div>
 </html>
 
 <style>
  .url-input {
-    display: block;
-    width: 80%;
+    display: inline-block;
+    width: 60%;
     margin: 10px auto;
     height: 25px;
     outline: none;
     border-radius: 3px;
     border: 1px solid #34BB94;
+ }
+
+ .collections-dropdown {
+  width: 30%;
+  height: 25px;
+ }
+
+ .chosen-choices {
+  border-radius: 3px;
+  border: 1px solid #34BB94 !important;
  }
 
  .add-url-btn {
@@ -27,6 +53,8 @@
     border: 1px solid #5D6CC2;
     cursor: pointer;
     outline: none;
+    margin: 0 auto;
+    display: block;
  }
  .add-url-btn:hover {
     background-color: #5D6CC2;

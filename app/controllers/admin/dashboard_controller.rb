@@ -8,13 +8,18 @@ class Admin::DashboardController < ShopifyApp::AuthenticatedController
   end
 
   def bulk_upload
+    @collections = ShopifyAPI::CustomCollection.find(:all)
   end
 
   def parse_pages
-
     urls = params.select { |param,_| param.match(/url_\d*/) }
-    urls = urls.map do |_, url|
-      url.sub(/&skuId=\d*/, '') # removing skuId from url
+    collections = params.select { |param| param.match(/collections_\d*/)}
+
+    urls = urls.map do |url_key, url|
+      url = url.sub(/&skuId=\d*/, '') # removing skuId from url
+      url_num = url_key.split('_').last
+      cols = collections["collections_#{url_num}"]
+      {url: url, collections: cols}
     end
     BulkUploadWorker.perform_async(urls, @shop_session.token)
     # ProductParser.new.parse(urls, @shop_session.token) # for tests on local machine

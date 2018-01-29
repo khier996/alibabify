@@ -68,3 +68,5 @@ gem 'nokogiri'
 gem 'httparty'
 gem 'sidekiq'
 gem 'redis'
+
+gem 'chosen-rails' # multiselect dropdown

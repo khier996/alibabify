@@ -10,11 +10,12 @@ class ProductParser
     session = ShopifyAPI::Session.new('kurut.shopify.com', session_token)
     ShopifyAPI::Base.activate_session(session)
 
-    urls.each do |url|
+    urls.each do |url_obj|
       begin
+        url = url_obj[:url]
         next if url.empty? or not_tmall(url)
         current_url = url # for saving in error
-        parse_product(url)
+        parse_product(url_obj)
         close_browser
       rescue => exception
         Error.create(url: current_url,
@@ -43,7 +44,8 @@ class ProductParser
     @headless = nil
   end
 
-  def parse_product(url)
+  def parse_product(url_obj)
+    url = url_obj[:url]
     @product = ShopifyAPI::Product.new
     @product.attributes = get_product_attrs(url)
     @product.save
@@ -54,6 +56,13 @@ class ProductParser
       @product.original_title = @original_title
       @db_product = Product.copy_shopify(@product)
       save_unparsed_skus if @product.variants.count < 100
+      save_collects(url_obj[:collections])
+    end
+  end
+
+  def save_collects(collections)
+    collections.each do |collection_id|
+      collect = ShopifyAPI::Collect.create(collection_id: collection_id, product_id: @product.id)
     end
   end
 
