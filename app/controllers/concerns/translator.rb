@@ -16,6 +16,7 @@ class Translator
 
   private
 
+
   def baidu_translate(query)
     url = baidu_url(query)
     res = HTTParty.get(url)
